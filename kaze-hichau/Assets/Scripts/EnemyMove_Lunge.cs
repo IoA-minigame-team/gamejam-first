@@ -1,61 +1,68 @@
-using System.Collections; // ★コルーチンを使うために、これを追加してね！
+// EnemyMove_Lunge.cs
+using System.Collections;
 using UnityEngine;
 
 public class EnemyMove_Lunge : EnemyMoveBase
 {
     [Header("突進の設定")]
-    public float lungeDistance = 1.0f; // どれくらい近づくか
-    public float lungeDuration = 0.2f; // ★どれくらいの時間をかけて「ヌルっと」動くか
+    public float lungeDistance = 1.0f;
+    public float lungeDuration = 0.2f;
 
-    private bool isLunging = false; // ★今「ヌルっと」移動中かどうかを覚えておくための旗
+    [Header("警告表示の設定")]
+    public GameObject warningMark;
+    public float warningDuration = 0.5f;
+    public Vector3 warningOffset = new Vector3(0, 1.2f, 0); // ★プレイヤーの頭のどれくらい上に表示するかのズレ
 
-    // 普段はずっとお休みしてるから、Moveの中身は空っぽでOK！
-    public override void Move(Transform enemyTransform, Transform playerTransform)
-    {
-        // 何もしない
-    }
+    private bool isLunging = false;
 
-    // 攻撃スクリプトから「今だ、動け！」って呼ばれるのは変わらないよ
+    public override void Move(Transform enemyTransform, Transform playerTransform) { }
+
     public void PerformLunge(Transform enemyTransform, Transform playerTransform)
     {
-        // もし、まだ前の「ヌルっと」が終わってなかったら、何もしない
-        if (isLunging)
-        {
-            return;
-        }
-        
-        // ★コルーチン（ヌルっと動かす処理）をスタートさせる！
+        if (isLunging) return;
         StartCoroutine(LungeCoroutine(enemyTransform, playerTransform));
     }
 
-    // ★ここが「ヌルっと」動かす処理の本体（コルーチン）だよ！
+    // ★ここのコルーチンを大きく書き換えるよ！
     private IEnumerator LungeCoroutine(Transform enemyTransform, Transform playerTransform)
     {
-        // ヌルっと移動開始！
         isLunging = true;
 
+        if (warningMark != null)
+        {
+            // 1. 警告マークを表示する
+            warningMark.SetActive(true);
+
+            // 2. 警告の時間だけ、プレイヤーを追いかけさせる
+            float warningTimer = 0f;
+            while (warningTimer < warningDuration)
+            {
+                // ★毎フレーム、警告マークをプレイヤーの頭の上に移動させる！
+                warningMark.transform.position = playerTransform.position + warningOffset;
+                
+                warningTimer += Time.deltaTime;
+                yield return null; // 次のフレームまで待つ
+            }
+            
+            // 3. 警告マークを隠す
+            warningMark.SetActive(false);
+        }
+
+        // ここから下の「ヌルっと」動く処理は、今までと全く同じだよ
         float elapsedTime = 0f;
         Vector3 startPosition = enemyTransform.position;
         Vector3 direction = (playerTransform.position - startPosition).normalized;
         Vector3 endPosition = startPosition + direction * lungeDistance;
 
-        // lungeDurationの時間になるまで、少しずつ動かすのを繰り返すよ
         while (elapsedTime < lungeDuration)
         {
-            // Lerpっていう魔法で、スタートとゴールの間の位置を計算するの
             enemyTransform.position = Vector3.Lerp(startPosition, endPosition, elapsedTime / lungeDuration);
-            
-            // 時間を進めて…
             elapsedTime += Time.deltaTime;
-            
-            // 次のフレームまで待ってね、っていう合図
             yield return null;
         }
 
-        // ぴったりゴールの位置に合わせる
         enemyTransform.position = endPosition;
 
-        // ヌルっと移動おわり！
         isLunging = false;
     }
 }

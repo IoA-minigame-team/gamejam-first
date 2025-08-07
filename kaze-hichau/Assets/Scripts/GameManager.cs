@@ -6,6 +6,8 @@ using Cysharp.Threading.Tasks;
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
+    
+    public Transform playerTransform;　//プレイヤーの情報
 
     public enum GameState
     {
@@ -40,6 +42,12 @@ public class GameManager : MonoBehaviour
         // もしロードされたのが「GameScene」なら、ゲームをリセットします
         if (scene.name == "GameScene")
         {
+            // ★シーンがロードされるたびに、新しいプレイヤーを探して覚え直す！
+            var playerObject = GameObject.FindWithTag("Player");
+            if (playerObject != null)
+            {
+                playerTransform = playerObject.transform;
+            }
             // 新しいシーンにあるUIを再取得するため、タグで見つけます
             // ※Unityエディタでスコア表示UIに"ScoreTextUI"タグを設定してください
             var scoreUIObject = GameObject.FindWithTag("ScoreTextUI");
