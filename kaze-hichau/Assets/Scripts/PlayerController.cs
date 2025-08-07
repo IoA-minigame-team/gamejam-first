@@ -27,4 +27,18 @@ public class PlayerController : MonoBehaviour
         // Rigidbodyの速度を更新してプレイヤーを動かす
         rb.linearVelocity = moveInput * moveSpeed;
     }
+    
+    // PlayerController.cs のクラス内に追記
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        // もし接触した相手のタグが、池本君と決めた「合言葉」だったら
+        if (other.CompareTag("Death"))
+        {
+            // GameManagerのEndGame関数を呼び出す
+            GameManager.Instance.EndGame();
+
+            // プレイヤー自身を画面から消す（非アクティブにする）
+            gameObject.SetActive(false);
+        }
+    }
 }
