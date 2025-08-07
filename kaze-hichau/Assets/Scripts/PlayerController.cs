@@ -24,14 +24,6 @@ public class PlayerController : MonoBehaviour
     {
         // 自分自身に付いているRigidbody 2Dコンポーネントを取得して、変数rbに入れる
         rb = GetComponent<Rigidbody2D>();
-        foreach (Transform child in transform)
-        {
-            if (child.name == "DashParticles")
-            {
-                dashParticles = child.GetComponent<ParticleSystem>();
-                break;
-            }
-        }
         // ★もし見つからなかったら、エラーを出す（設定ミスを防ぐため）
         if (dashParticles == null)
         {
