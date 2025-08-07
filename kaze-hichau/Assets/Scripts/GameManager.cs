@@ -1,27 +1,58 @@
 using UnityEngine;
-using TMPro; // TextMeshProを扱うために必要
-using UnityEngine.SceneManagement;
+using TMPro;
+using UnityEngine.SceneManagement; // ★シーン管理に必要
 using Cysharp.Threading.Tasks;
 
 public class GameManager : MonoBehaviour
 {
-    // シングルトンのための静的インスタンス
     public static GameManager Instance { get; private set; }
 
-    // ゲームの状態（GameClearを削除）
     public enum GameState
     {
-        Ready,    // 準備中
-        Playing,  // プレイ中
-        GameOver  // ゲームオーバー
+        Ready,
+        Playing,
+        GameOver
     }
     public GameState currentState { get; private set; }
 
-    // --- ここから変更 ---
     [Header("UI参照")]
-    public TextMeshProUGUI scoreText; // スコア表示用UIテキスト
+    public TextMeshProUGUI scoreText;
 
-    public float score; // スコアを保持する変数
+    public float score;
+
+    // --- ▼ここからがリトライ対応のための修正▼ ---
+
+    private void OnEnable()
+    {
+        // シーンがロードされた時にOnSceneLoadedメソッドを呼ぶように登録します
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    private void OnDisable()
+    {
+        // オブジェクトが破棄される際に登録を解除します（お作法です）
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    // シーンがロードされるたびに、このメソッドが自動的に呼ばれます
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        // もしロードされたのが「GameScene」なら、ゲームをリセットします
+        if (scene.name == "GameScene")
+        {
+            // 新しいシーンにあるUIを再取得するため、タグで見つけます
+            // ※Unityエディタでスコア表示UIに"ScoreTextUI"タグを設定してください
+            var scoreUIObject = GameObject.FindWithTag("ScoreTextUI");
+            if (scoreUIObject != null)
+            {
+                scoreText = scoreUIObject.GetComponent<TextMeshProUGUI>();
+            }
+            
+            StartGame(); // ゲームを初期化して開始
+        }
+    }
+    
+    // --- ▲ここまでがリトライ対応のための修正▲ ---
 
     private void Awake()
     {
@@ -36,39 +67,36 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    // Start()は最初の起動時のみの役割になります
     void Start()
     {
-        currentState = GameState.Ready;
-        // 1秒後にゲームを開始する
-        Invoke(nameof(StartGame), 1f);
+        // ゲームがGameSceneから直接始まった場合のみ、StartGameを呼びます
+        if (SceneManager.GetActiveScene().name == "GameScene")
+        {
+            StartGame();
+        }
     }
 
     private void StartGame()
     {
         currentState = GameState.Playing;
-        score = 0f; // ゲーム開始時にスコアを0にリセット
+        score = 0f;
         Debug.Log("Game Start!");
     }
 
     void Update()
     {
-        // プレイ中でなければ何もしない
         if (currentState != GameState.Playing) return;
 
-        // --- ここから変更 ---
-        // 時間経過でスコアを加算していく（1秒で10点加算されるペース）
         score += Time.deltaTime * 10;
         
-        // スコアUIを更新
         UpdateScoreUI();
-        // --- 変更ここまで ---
     }
 
     private void UpdateScoreUI()
     {
         if (scoreText != null)
         {
-            // スコアを整数で表示
             scoreText.text = "SCORE: " + score.ToString("F0");
         }
     }
@@ -79,15 +107,14 @@ public class GameManager : MonoBehaviour
         {
             currentState = GameState.GameOver;
             Debug.Log("Game Over! Final Score: " + score.ToString("F0"));
-
-            // 1秒待ってからリザルト画面に遷移する
-            // ※UniTaskが使えるなら UniTask.Delay(1000).ContinueWith(() => SceneManager.LoadScene("ResultScene")); のように書ける
-            Invoke(nameof(LoadResultScene), 1f);
+            
+            LoadResultSceneWithDelay().Forget();
         }
     }
 
-    private void LoadResultScene()
+    private async UniTaskVoid LoadResultSceneWithDelay()
     {
+        await UniTask.Delay(1000, ignoreTimeScale: true);
         SceneManager.LoadScene("ResultScene");
     }
 }
