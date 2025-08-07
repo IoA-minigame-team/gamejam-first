@@ -1,5 +1,7 @@
 using UnityEngine;
 using TMPro; // TextMeshProを扱うために必要
+using UnityEngine.SceneManagement;
+using Cysharp.Threading.Tasks;
 
 public class GameManager : MonoBehaviour
 {
@@ -19,8 +21,7 @@ public class GameManager : MonoBehaviour
     [Header("UI参照")]
     public TextMeshProUGUI scoreText; // スコア表示用UIテキスト
 
-    private float score; // スコアを保持する変数
-    // --- 変更ここまで ---
+    public float score; // スコアを保持する変数
 
     private void Awake()
     {
@@ -72,14 +73,21 @@ public class GameManager : MonoBehaviour
         }
     }
     
-    // ゲームオーバー時に呼ばれる関数（中身はStep3で実装）
     public void EndGame()
     {
         if (currentState == GameState.Playing)
         {
             currentState = GameState.GameOver;
             Debug.Log("Game Over! Final Score: " + score.ToString("F0"));
-            // ここにリザルト画面への遷移などを追加していく
+
+            // 1秒待ってからリザルト画面に遷移する
+            // ※UniTaskが使えるなら UniTask.Delay(1000).ContinueWith(() => SceneManager.LoadScene("ResultScene")); のように書ける
+            Invoke(nameof(LoadResultScene), 1f);
         }
+    }
+
+    private void LoadResultScene()
+    {
+        SceneManager.LoadScene("ResultScene");
     }
 }
