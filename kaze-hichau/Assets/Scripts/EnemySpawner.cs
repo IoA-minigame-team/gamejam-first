@@ -6,9 +6,12 @@ public class EnemySpawner : MonoBehaviour
 {
     [Header("スポナーの設定")]
     public Transform playerTransform;
-    // public float spawnRadius = 5.0f; // ← この一行はもういらないから消しちゃう！
-    public float minSpawnRadius = 5.0f; // ★最低でもこれだけは離す距離
-    public float maxSpawnRadius = 7.0f; // ★最大でもこれ以上は離さない距離
+    public float minSpawnRadius = 5.0f;
+    public float maxSpawnRadius = 7.0f;
+
+    [Header("難易度の設定")]
+    public AnimationCurve difficultyCurve;  // ★難易度を決めるための魔法のカーブ！
+    public float minSpawnRate = 0.1f;       // ★どんなに難しくなっても、これよりは早くならないようにする上限
 
     [Header("生み出す敵のリスト")]
     public List<EnemySpawnData> enemiesToSpawn;
@@ -31,10 +34,13 @@ public class EnemySpawner : MonoBehaviour
 
     void Update()
     {
-        // (ここの中身も変更なし！)
-        if (playerTransform == null) return;
+        if (playerTransform == null || GameManager.Instance.currentState != GameManager.GameState.Playing) return;
 
         gameTimer += Time.deltaTime;
+
+        // ★今のスコアから、難易度カーブを読み取って「難しさの倍率」を決める
+        float score = GameManager.Instance.score;
+        float difficultyMultiplier = difficultyCurve.Evaluate(score);
 
         foreach (var enemy in enemiesToSpawn)
         {
@@ -44,26 +50,26 @@ public class EnemySpawner : MonoBehaviour
 
                 if (enemy.spawnTimer <= 0f)
                 {
-                    enemy.spawnTimer = enemy.spawnRate;
+                    // ★基本のスポーンレートに、さっきの倍率を掛けて、今のスポーンレートを計算する！
+                    float currentSpawnRate = enemy.spawnRate * difficultyMultiplier;
+                    
+                    // ★ただし、早くなりすぎないように下限を決めてあげる
+                    currentSpawnRate = Mathf.Max(currentSpawnRate, minSpawnRate);
+                    
+                    // ★計算した今のスポーンレートをタイマーにセット！
+                    enemy.spawnTimer = currentSpawnRate;
+
                     SpawnEnemy(enemy.enemyPrefab);
                 }
             }
         }
     }
 
-    // ★ここの中身を書き換えるよ！
     void SpawnEnemy(GameObject enemyPrefab)
     {
-        // ① ランダムな方向を決めるのは同じ
-        Vector2 randomDirection = Random.insideUnitCircle.normalized;
-
-        // ② 最低距離と最大距離の間で、ランダムな距離を決める！
-        float randomDistance = Random.Range(minSpawnRadius, maxSpawnRadius);
-
-        // ③ 方向と距離を組み合わせて、最終的な場所を決める
-        Vector3 spawnPos = playerTransform.position + (Vector3)randomDirection * randomDistance;
-
-        // ④ 計算した場所に、敵さんを生み出す！
+        // (ここの中身は変更なし！)
+        Vector2 randomCirclePos = Random.insideUnitCircle.normalized * Random.Range(minSpawnRadius, maxSpawnRadius);
+        Vector3 spawnPos = playerTransform.position + new Vector3(randomCirclePos.x, randomCirclePos.y, 0);
         Instantiate(enemyPrefab, spawnPos, Quaternion.identity);
     }
 }
