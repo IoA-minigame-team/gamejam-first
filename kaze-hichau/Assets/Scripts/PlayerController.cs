@@ -1,129 +1,109 @@
-using System.Collections;
 using UnityEngine;
+using System.Collections;
 
 public class PlayerController : MonoBehaviour
 {
-    [Header("移動の設定")]
     public float moveSpeed = 5f;
-    
-    [Header("ダッシュの設定")] // ★ここからダッシュ用の設定を追加
-    public float dashSpeed = 10f;       // ダッシュの速さ
-    public float dashDuration = 0.2f;   // ダッシュしてる時間
-    public float dashCooldown = 1f;     // ダッシュ後の待ち時間
-    
     private Rigidbody2D rb;
+    private Animator animator;
     private Vector2 moveInput;
-    private Vector2 lastMoveDirection; // ★最後に動いた方向を覚えておく
 
-    private bool isDashing = false;    // ★今、ダッシュ中かどうか
-    private float dashCooldownTimer = 0f; // ★次のダッシュまでの時間を計るタイマー
-  
-    public ParticleSystem dashParticles; // ★パーティクルシステムを入れておく箱
-    
-    
+    private SpriteRenderer spriteRenderer;
+    private bool isInvincible = false;
+    private Coroutine invincibilityCoroutine; // コルーチンの参照を保持
+
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
-        //animator = GetComponent<Animator>();
+        animator = GetComponent<Animator>(); // nullの場合がある
+        spriteRenderer = GetComponent<SpriteRenderer>();
 
-        // --- ▼修正点▼ ---
-        // GameManagerに自分自身をプレイヤーとして登録する
         if (GameManager.Instance != null)
         {
             GameManager.Instance.playerTransform = this.transform;
         }
     }
-    
+
     void Update()
     {
         float moveX = Input.GetAxisRaw("Horizontal");
         float moveY = Input.GetAxisRaw("Vertical");
-        
-        // 入力をVector2にまとめ、長さを1に正規化する（斜め移動が速くなるのを防ぐ）
         moveInput = new Vector2(moveX, moveY).normalized;
-        // ★もし移動入力があったら、その方向を覚えておく
-        if (moveInput.magnitude > 0)
-        {
-            lastMoveDirection = moveInput;
-        }
-        
-        // --- ▼ダッシュの処理▼ ---
 
-        // ★ダッシュのクールダウンタイマーを進める
-        if (dashCooldownTimer > 0)
+        // Animatorが存在し、かつAnimatorControllerが設定されている場合のみアニメーション処理を実行
+        if (animator != null && animator.runtimeAnimatorController != null)
         {
-            dashCooldownTimer -= Time.deltaTime;
-        }
-
-        // ★Shiftキーが押されて、ダッシュ中でなくて、クールダウンが終わってたら…
-        if (Input.GetKeyDown(KeyCode.LeftShift) && !isDashing && dashCooldownTimer <= 0)
-        {
-            StartCoroutine(DashCoroutine());
+            animator.SetFloat("Horizontal", moveInput.x);
+            animator.SetFloat("Vertical", moveInput.y);
+            animator.SetFloat("Speed", moveInput.sqrMagnitude);
         }
     }
-    
+
     void FixedUpdate()
     {
-        // ★ダッシュ中は、普通の移動を止める
-        if (isDashing)
-        {
-            return;
-        }
-        // Rigidbodyの速度を更新してプレイヤーを動かす
         rb.linearVelocity = moveInput * moveSpeed;
     }
-    
-    // ★これがダッシュ処理の本体（コルーチン）だよ！
-    private IEnumerator DashCoroutine()
-    {
-        isDashing = true; // ダッシュ開始！
-        dashCooldownTimer = dashCooldown; // クールダウンタイマーをリセット
 
-        // ★一瞬だけ、物理的な力を加えてシュッと動かす！
-        rb.linearVelocity = Vector2.zero; // 一旦停止して…
-        rb.AddForce(lastMoveDirection * dashSpeed, ForceMode2D.Impulse);
-
-        // ★ダッシュが始まったらパーティクルを再生！
-        if (dashParticles != null)
-        {
-            // ① ダッシュと"逆"方向の角度を計算する
-            //    lastMoveDirection にマイナス(-)を付けて逆向きにしてるのがポイント！
-            float angle = Mathf.Atan2(-lastMoveDirection.y, -lastMoveDirection.x) * Mathf.Rad2Deg;
-
-            // ② パーティクルシステムの向きを、その角度にクルッと回転させる！
-            //    z軸の回転だけ変えればOK
-            dashParticles.transform.rotation = Quaternion.Euler(0f, 0f, angle);
-
-            // ③ その向きでパーティクルを再生！
-            dashParticles.Play();
-        }
-        yield return new WaitForSeconds(dashDuration);
-
-        // ★ダッシュが終わったらパーティクルを停止！
-        if (dashParticles != null)
-        {
-            dashParticles.Stop();
-        }
-        isDashing = false;
-    }
-
-    // PlayerController.cs のクラス内に追記
     private void OnTriggerEnter2D(Collider2D other)
     {
-        // ★ダッシュ中は無敵にする！
-        if (isDashing)
-        {
-            return;
-        }
-        
-        // もし接触した相手のタグが、池本君と決めた「合言葉」だったら
-        if (other.CompareTag("Death"))
-        {
-            // GameManagerのEndGame関数を呼び出す
-            GameManager.Instance.EndGame();
+        Debug.Log($"衝突検出: {other.gameObject.name}, タグ: {other.tag}"); // デバッグログ追加
 
-            // プレイヤー自身を画面から消す（非アクティブにする）
+        if (other.CompareTag("Mask"))
+        {
+            ActivateInvincibility(3f); // 3秒に短縮
+            Destroy(other.gameObject);
+        }
+        else if (other.CompareTag("Death") && !isInvincible)
+        {
+            Debug.Log("敵の攻撃に当たりました！"); // デバッグログ追加
+            GameManager.Instance.EndGame();
             gameObject.SetActive(false);
+        }
+        else if (other.CompareTag("Death") && !isInvincible) // 敵本体との衝突も追加
+        {
+            Debug.Log("敵本体に当たりました！"); // デバッグログ追加
+            GameManager.Instance.EndGame();
+            gameObject.SetActive(false);
+        }
+    }
+
+    private void ActivateInvincibility(float duration)
+    {
+        // 既存の無敵状態がある場合は停止
+        if (invincibilityCoroutine != null)
+        {
+            StopCoroutine(invincibilityCoroutine);
+        }
+
+        invincibilityCoroutine = StartCoroutine(InvincibilityCoroutine(duration));
+    }
+
+    private IEnumerator InvincibilityCoroutine(float duration)
+    {
+        isInvincible = true;
+        Debug.Log("無敵状態になりました！");
+
+        float endTime = Time.time + duration;
+        while (Time.time < endTime)
+        {
+            spriteRenderer.color = new Color(1f, 1f, 1f, 0.5f);
+            yield return new WaitForSeconds(0.1f);
+            spriteRenderer.color = Color.white;
+            yield return new WaitForSeconds(0.1f);
+        }
+
+        isInvincible = false;
+        spriteRenderer.color = Color.white; // 確実に元の色に戻す
+        invincibilityCoroutine = null;
+        Debug.Log("無敵状態が終了しました。");
+    }
+
+    void OnDestroy()
+    {
+        // オブジェクト破棄時にコルーチンを停止
+        if (invincibilityCoroutine != null)
+        {
+            StopCoroutine(invincibilityCoroutine);
         }
     }
 }
