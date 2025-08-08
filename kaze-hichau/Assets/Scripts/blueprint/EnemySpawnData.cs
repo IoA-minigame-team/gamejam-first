@@ -4,9 +4,9 @@ using UnityEngine;
 [System.Serializable]
 public class EnemySpawnData
 {
-    public GameObject enemyPrefab;
+    public GameObject spawnHeraldPrefab; // ★呼び出す「予告係」のプレハブ
     public float spawnRate;
-    public float activationTime = 0f; // ★「何秒後に登場させるか」の項目を追加！
+    public float activationTime = 0f;
 
     [HideInInspector]
     public float spawnTimer;

@@ -44,17 +44,19 @@ public class EnemySpawner : MonoBehaviour
                     enemy.spawnTimer = currentSpawnRate;
                     
                     // ★★★ 正しいプレイヤー情報をSpawnEnemyに渡してあげる
-                    SpawnEnemy(enemy.enemyPrefab, currentPlayerTransform);
+                    SpawnEnemy(enemy.spawnHeraldPrefab, currentPlayerTransform);
                 }
             }
         }
     }
 
     // ★★★ 引数でプレイヤー情報を受け取るように変更
-    void SpawnEnemy(GameObject enemyPrefab, Transform player)
+    void SpawnEnemy(GameObject heraldPrefab, Transform player)
     {
         Vector2 randomCirclePos = Random.insideUnitCircle.normalized * Random.Range(minSpawnRadius, maxSpawnRadius);
         Vector3 spawnPos = player.position + new Vector3(randomCirclePos.x, randomCirclePos.y, 0);
-        Instantiate(enemyPrefab, spawnPos, Quaternion.identity);
+        
+        // ★敵のプレハブの代わりに、「予告係」のプレハブを生み出す！
+        Instantiate(heraldPrefab, spawnPos, Quaternion.identity);
     }
 }
