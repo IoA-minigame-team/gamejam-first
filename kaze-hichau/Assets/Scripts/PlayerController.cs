@@ -1,5 +1,5 @@
 using UnityEngine;
-using System.Collections;
+using Cysharp.Threading.Tasks; // UniTaskを使用
 
 public class PlayerController : MonoBehaviour
 {
@@ -7,16 +7,30 @@ public class PlayerController : MonoBehaviour
     private Rigidbody2D rb;
     private Animator animator;
     private Vector2 moveInput;
-
     private SpriteRenderer spriteRenderer;
     private bool isInvincible = false;
-    private Coroutine invincibilityCoroutine; // コルーチンの参照を保持
+
+    // --- ▼ここからが今回の重要な修正▼ ---
+
+    private float originalMoveSpeed; // 本来の移動速度を保存しておく変数
+    private bool isSlowed = false;    // 減速中かどうかを管理するフラグ
+
+    [Header("減速デバフの設定")]
+    public float slowMultiplier = 0.5f; // 移動速度の倍率（0.5 = 50%）
+    public float slowDuration = 2f;     // 減速効果の時間（秒）
+    
+    // --- ▲ここまでが今回の重要な修正▲ ---
 
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
-        animator = GetComponent<Animator>(); // nullの場合がある
+        animator = GetComponent<Animator>();
         spriteRenderer = GetComponent<SpriteRenderer>();
+
+        // --- ▼修正点▼ ---
+        // 起動時に本来の移動速度を記憶しておく
+        originalMoveSpeed = moveSpeed;
+        // --- ▲修正点▲ ---
 
         if (GameManager.Instance != null)
         {
@@ -30,8 +44,7 @@ public class PlayerController : MonoBehaviour
         float moveY = Input.GetAxisRaw("Vertical");
         moveInput = new Vector2(moveX, moveY).normalized;
 
-        // Animatorが存在し、かつAnimatorControllerが設定されている場合のみアニメーション処理を実行
-        if (animator != null && animator.runtimeAnimatorController != null)
+        if(animator != null)
         {
             animator.SetFloat("Horizontal", moveInput.x);
             animator.SetFloat("Vertical", moveInput.y);
@@ -46,39 +59,57 @@ public class PlayerController : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        Debug.Log($"衝突検出: {other.gameObject.name}, タグ: {other.tag}"); // デバッグログ追加
+        // --- ▼ここからが今回の重要な修正▼ ---
 
-        if (other.CompareTag("Mask"))
+        // もし接触した相手が「Bullet」タグなら
+        if (other.CompareTag("Bullet"))
         {
-            ActivateInvincibility(3f); // 3秒に短縮
+            // 減速デバフ処理を呼び出す
+            ApplySlowDebuff();
+            // 弾を消す
             Destroy(other.gameObject);
         }
+        // マスク取得の処理はそのまま
+        else if (other.CompareTag("Mask"))
+        {
+            ActivateInvincibility(5f).Forget();
+            Destroy(other.gameObject);
+        }
+        // 敵の攻撃に当たった時の処理（"Death"タグに変更）
         else if (other.CompareTag("Death") && !isInvincible)
         {
-            Debug.Log("敵の攻撃に当たりました！"); // デバッグログ追加
             GameManager.Instance.EndGame();
             gameObject.SetActive(false);
         }
-        else if (other.CompareTag("Death") && !isInvincible) // 敵本体との衝突も追加
-        {
-            Debug.Log("敵本体に当たりました！"); // デバッグログ追加
-            GameManager.Instance.EndGame();
-            gameObject.SetActive(false);
-        }
+
+        // --- ▲ここまでが今回の重要な修正▲ ---
     }
 
-    private void ActivateInvincibility(float duration)
+    // --- ▼ここからが今回の重要な修正▼ ---
+
+    // 減速デバフを適用する非同期メソッド
+    private async UniTaskVoid ApplySlowDebuff()
     {
-        // 既存の無敵状態がある場合は停止
-        if (invincibilityCoroutine != null)
+        // すでに減速中でなければ
+        if (!isSlowed)
         {
-            StopCoroutine(invincibilityCoroutine);
-        }
+            isSlowed = true;
+            moveSpeed = originalMoveSpeed * slowMultiplier; // 速度を遅くする
+            spriteRenderer.color = Color.cyan; // 色を変えてデバフを分かりやすくする
 
-        invincibilityCoroutine = StartCoroutine(InvincibilityCoroutine(duration));
+            // 指定された時間、待機する
+            await UniTask.Delay((int)(slowDuration * 1000));
+
+            // 元の状態に戻す
+            moveSpeed = originalMoveSpeed;
+            spriteRenderer.color = Color.white;
+            isSlowed = false;
+        }
     }
 
-    private IEnumerator InvincibilityCoroutine(float duration)
+    // --- ▲ここまでが今回の重要な修正▲ ---
+
+    private async UniTaskVoid ActivateInvincibility(float duration)
     {
         isInvincible = true;
         Debug.Log("無敵状態になりました！");
@@ -87,23 +118,12 @@ public class PlayerController : MonoBehaviour
         while (Time.time < endTime)
         {
             spriteRenderer.color = new Color(1f, 1f, 1f, 0.5f);
-            yield return new WaitForSeconds(0.1f);
+            await UniTask.Delay(100);
             spriteRenderer.color = Color.white;
-            yield return new WaitForSeconds(0.1f);
+            await UniTask.Delay(100);
         }
-
+        
         isInvincible = false;
-        spriteRenderer.color = Color.white; // 確実に元の色に戻す
-        invincibilityCoroutine = null;
         Debug.Log("無敵状態が終了しました。");
-    }
-
-    void OnDestroy()
-    {
-        // オブジェクト破棄時にコルーチンを停止
-        if (invincibilityCoroutine != null)
-        {
-            StopCoroutine(invincibilityCoroutine);
-        }
     }
 }
