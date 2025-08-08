@@ -20,14 +20,17 @@ public class PlayerController : MonoBehaviour
   
     public ParticleSystem dashParticles; // ★パーティクルシステムを入れておく箱
     
+    
     void Start()
     {
-        // 自分自身に付いているRigidbody 2Dコンポーネントを取得して、変数rbに入れる
         rb = GetComponent<Rigidbody2D>();
-        // ★もし見つからなかったら、エラーを出す（設定ミスを防ぐため）
-        if (dashParticles == null)
+        //animator = GetComponent<Animator>();
+
+        // --- ▼修正点▼ ---
+        // GameManagerに自分自身をプレイヤーとして登録する
+        if (GameManager.Instance != null)
         {
-            Debug.LogError("DashParticles という名前のパーティクルシステムがプレイヤーの子オブジェクトに見つかりません！");
+            GameManager.Instance.playerTransform = this.transform;
         }
     }
     

@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class EnemySpawner : MonoBehaviour
@@ -17,7 +16,7 @@ public class EnemySpawner : MonoBehaviour
     public List<EnemySpawnData> enemiesToSpawn;
 
     private float gameTimer;
-
+    
 
     void Update()
     {
