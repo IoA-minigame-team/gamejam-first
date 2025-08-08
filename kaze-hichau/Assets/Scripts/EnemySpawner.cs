@@ -4,7 +4,6 @@ using UnityEngine;
 
 public class EnemySpawner : MonoBehaviour
 {
-    // public Transform playerTransform; // ★★★ もう自分で持たなくていいから消しちゃう！
 
     [Header("スポナーの設定")]
     public float minSpawnRadius = 5.0f;
