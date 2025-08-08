@@ -7,7 +7,7 @@ public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
     
-    public Transform playerTransform;　//プレイヤーの情報
+    public Transform playerTransform; //プレイヤーの情報
 
     public enum GameState
     {
