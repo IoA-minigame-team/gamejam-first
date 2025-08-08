@@ -21,7 +21,7 @@ public class ItemSpawner : MonoBehaviour
     void Update()
     {
         // ゲーム中でなければ何もしない
-        if (GameManager.Instance.currentState != GameManager.GameState.Playing) return;
+        if (GameManager.Instance == null || GameManager.Instance.currentState != GameManager.GameState.Playing) return;
 
         spawnTimer -= Time.deltaTime;
         if (spawnTimer <= 0f)
