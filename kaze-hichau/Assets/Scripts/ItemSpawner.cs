@@ -40,6 +40,14 @@ public class ItemSpawner : MonoBehaviour
 
         // マスクを生成
         Instantiate(maskPrefab, spawnPosition, Quaternion.identity);
-        Debug.Log("マスクが出現しました！");
+        if (maskPrefab != null)
+        {
+            Instantiate(maskPrefab, spawnPosition, Quaternion.identity);
+            Debug.Log("マスクが出現しました！");
+        }
+        else
+        {
+            Debug.LogWarning("maskPrefab is not assigned in the Inspector. Cannot spawn mask.");
+        }
     }
 }
