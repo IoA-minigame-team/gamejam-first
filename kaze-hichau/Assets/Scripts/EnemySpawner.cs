@@ -18,7 +18,6 @@ public class EnemySpawner : MonoBehaviour
 
     private float gameTimer;
 
-    // void Start() { ... } // ★★★ Start()も、もういらないから消しちゃう！
 
     void Update()
     {
