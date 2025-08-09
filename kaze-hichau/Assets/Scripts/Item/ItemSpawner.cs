@@ -38,8 +38,7 @@ public class ItemSpawner : MonoBehaviour
         float randomY = Random.Range(spawnAreaMin.y, spawnAreaMax.y);
         Vector2 spawnPosition = new Vector2(randomX, randomY);
 
-        // マスクを生成
-        Instantiate(maskPrefab, spawnPosition, Quaternion.identity);
+        // マスクを生成（1回だけ）
         if (maskPrefab != null)
         {
             Instantiate(maskPrefab, spawnPosition, Quaternion.identity);
