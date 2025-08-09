@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.SceneManagement; // シーン遷移に必須！
 
-public class TitleUIController : MonoBehaviour
+public class HowToPlayUIController : MonoBehaviour
 {
     // ボタンが押された時に呼び出す関数
     public void OnPlayButtonClicked()
@@ -9,9 +9,9 @@ public class TitleUIController : MonoBehaviour
         // "GameScene"という名前のシーンをロードする
         SceneManager.LoadScene("GameScene");
     }
-    public void OnHowtoplayButtonClicked()
+    public void OnTitleButtonClicked()
     {
-        // "HowToPlayScene"という名前のシーンをロードする
-        SceneManager.LoadScene("HowToPlayScene");
+        // "TitleScene"という名前のシーンをロードする
+        SceneManager.LoadScene("TitleScene");
     }
 }
