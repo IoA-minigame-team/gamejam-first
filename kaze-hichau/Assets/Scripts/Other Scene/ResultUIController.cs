@@ -18,4 +18,10 @@ public class ResultUIController : MonoBehaviour
         // ゲームシーンを再読み込み
         SceneManager.LoadScene("GameScene");
     }
+
+    public void OnTitleButtonClicked()
+    {
+        // "TitleScene"という名前のシーンをロードする
+        SceneManager.LoadScene("TitleScene");
+    }
 }
