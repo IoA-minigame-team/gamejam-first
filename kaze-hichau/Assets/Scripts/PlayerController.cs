@@ -1,5 +1,6 @@
 using UnityEngine;
 using Cysharp.Threading.Tasks; // UniTaskを使用
+using System.Collections;// ★コルーチン（ダッシュ）のために必要！
 
 public class PlayerController : MonoBehaviour
 {
@@ -11,16 +12,24 @@ public class PlayerController : MonoBehaviour
     private bool isInvincible = false;
 
     // --- ▼ここからが今回の重要な修正▼ ---
-
     private float originalMoveSpeed; // 本来の移動速度を保存しておく変数
     private bool isSlowed = false;    // 減速中かどうかを管理するフラグ
 
     [Header("減速デバフの設定")]
     public float slowMultiplier = 0.5f; // 移動速度の倍率（0.5 = 50%）
     public float slowDuration = 2f;     // 減速効果の時間（秒）
-    
     // --- ▲ここまでが今回の重要な修正▲ ---
+    // --- ▼★ここからダッシュ機能を追加！▼ ---
+    [Header("ダッシュの設定")]
+    public float dashSpeed = 10f;
+    public float dashDuration = 0.2f;
+    public float dashCooldown = 1f;
+    public ParticleSystem dashParticles;
 
+    private Vector2 lastMoveDirection;
+    private bool isDashing = false;
+    private float dashCooldownTimer = 0f;
+    // --- ▲★ここまでダッシュ機能を追加！▲ ---
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -40,25 +49,68 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
-        float moveX = Input.GetAxisRaw("Horizontal");
-        float moveY = Input.GetAxisRaw("Vertical");
-        moveInput = new Vector2(moveX, moveY).normalized;
+        // ★ダッシュ中は移動入力を受け付けないようにする
+        if (isDashing)
+        {
+            moveInput = Vector2.zero;
+        }
+        else
+        {
+            float moveX = Input.GetAxisRaw("Horizontal");
+            float moveY = Input.GetAxisRaw("Vertical");
+            moveInput = new Vector2(moveX, moveY).normalized;
+        }
+        // もし、横方向の入力があったら…
+        if (moveInput.x != 0)
+        {
+            // 右を向いていたら(xがプラス)、反転しない (flipX = false)
+            // 左を向いていたら(xがマイナス)、反転する (flipX = true)
+            spriteRenderer.flipX = moveInput.x > 0;
+        }
 
+        // ★最後に動いた方向を覚えておく（ダッシュ方向を決めるため）
+        if (moveInput.magnitude > 0)
+        {
+            lastMoveDirection = moveInput;
+        }
+
+        // Animatorに今の状態を教える
         if(animator != null)
         {
-            animator.SetFloat("Horizontal", moveInput.x);
-            animator.SetFloat("Vertical", moveInput.y);
-            animator.SetFloat("Speed", moveInput.sqrMagnitude);
+            // animator.SetFloat("Horizontal", moveInput.x); // ←もしBlendTreeを使うならこっち
+            // animator.SetFloat("Vertical", moveInput.y);
+            animator.SetFloat("MoveSpeed", moveInput.sqrMagnitude);
+        }
+
+        // ★ダッシュのクールダウンタイマーを進める
+        if (dashCooldownTimer > 0)
+        {
+            dashCooldownTimer -= Time.deltaTime;
+        }
+
+        // ★Shiftキーが押されて、ダッシュ中でなくて、クールダウンが終わってたらダッシュ！
+        if (Input.GetKeyDown(KeyCode.LeftShift) && !isDashing && dashCooldownTimer <= 0)
+        {
+            StartCoroutine(DashCoroutine());
         }
     }
-
     void FixedUpdate()
     {
+        // ★ダッシュ中は物理的な移動をさせない
+        if (isDashing)
+        {
+            return;
+        }
         rb.linearVelocity = moveInput * moveSpeed;
     }
 
     private void OnTriggerEnter2D(Collider2D other)
     {
+        // ★★★ マスクの無敵か、ダッシュ中の無敵、どっちかが有効なら当たり判定を無視！
+        if (isInvincible || isDashing)
+        {
+            return;
+        }
         // --- ▼ここからが今回の重要な修正▼ ---
 
         // もし接触した相手が「Bullet」タグなら
@@ -81,12 +133,24 @@ public class PlayerController : MonoBehaviour
             GameManager.Instance.EndGame();
             gameObject.SetActive(false);
         }
-
         // --- ▲ここまでが今回の重要な修正▲ ---
     }
+    private IEnumerator DashCoroutine()
+    {
+        isDashing = true;
+        dashCooldownTimer = dashCooldown;
+        rb.AddForce(lastMoveDirection * dashSpeed, ForceMode2D.Impulse);
 
+        if (dashParticles != null)
+        {
+            float angle = Mathf.Atan2(-lastMoveDirection.y, -lastMoveDirection.x) * Mathf.Rad2Deg;
+            dashParticles.transform.rotation = Quaternion.Euler(0f, 0f, angle);
+            dashParticles.Play();
+        }
+        yield return new WaitForSeconds(dashDuration);
+        isDashing = false;
+    }
     // --- ▼ここからが今回の重要な修正▼ ---
-
     // 減速デバフを適用する非同期メソッド
     private async UniTaskVoid ApplySlowDebuff()
     {
