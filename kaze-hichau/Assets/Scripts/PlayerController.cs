@@ -25,6 +25,10 @@ public class PlayerController : MonoBehaviour
     public float dashDuration = 0.2f;
     public float dashCooldown = 1f;
     public ParticleSystem dashParticles;
+    
+    [Header("移動範囲の制限")]
+    public Vector2 minPosition; // 左下の座標
+    public Vector2 maxPosition; // 右上の座標
 
     private Vector2 lastMoveDirection;
     private bool isDashing = false;
@@ -102,6 +106,20 @@ public class PlayerController : MonoBehaviour
             return;
         }
         rb.linearVelocity = moveInput * moveSpeed;
+    }
+
+    // LateUpdateは、全てのUpdate処理が終わった後に呼ばれる
+    // プレイヤーが移動した「後」に座標を制限するので、ガクつきがなくなる
+    private void LateUpdate()
+    {
+        // プレイヤーの現在位置を、指定した範囲内に収める
+        Vector3 clampedPosition = transform.position;
+        clampedPosition.x = Mathf.Clamp(transform.position.x, minPosition.x, maxPosition.x);
+        clampedPosition.y = Mathf.Clamp(transform.position.y, minPosition.y, maxPosition.y);
+
+        // 制限された座標をプレイヤーの位置として再設定
+        transform.position = clampedPosition;
+
     }
 
     private void OnTriggerEnter2D(Collider2D other)
