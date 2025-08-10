@@ -134,6 +134,7 @@ public class PlayerController : MonoBehaviour
         // もし接触した相手が「Bullet」タグなら
         if (other.CompareTag("Bullet"))
         {
+            SEManager.instance.PlayPlayerLightDamage(); // 軽いダメージ音を再生
             // 減速デバフ処理を呼び出す
             ApplySlowDebuff();
             // 弾を消す
@@ -148,6 +149,7 @@ public class PlayerController : MonoBehaviour
         // 敵の攻撃に当たった時の処理（"Death"タグに変更）
         else if (other.CompareTag("Death") && !isInvincible)
         {
+            SEManager.instance.PlayPlayerHeavyDamage(); // 致命的なダメージ音を再生
             GameManager.Instance.EndGame();
             gameObject.SetActive(false);
         }
