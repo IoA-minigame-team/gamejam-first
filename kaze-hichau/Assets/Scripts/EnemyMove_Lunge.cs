@@ -32,6 +32,7 @@ public class EnemyMove_Lunge : EnemyMoveBase
         {
             // 1. 警告マークを表示する
             warningMark.SetActive(true);
+            SEManager.instance.PlayEnemyAlert();
 
             // 2. 警告の時間だけ、プレイヤーを追いかけさせる
             float warningTimer = 0f;
