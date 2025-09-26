@@ -25,7 +25,7 @@ public class PlayerController : MonoBehaviour
     public float dashDuration = 0.2f;
     public float dashCooldown = 1f;
     public ParticleSystem dashParticles;
-    
+
     [Header("移動範囲の制限")]
     public Vector2 minPosition; // 左下の座標
     public Vector2 maxPosition; // 右上の座標
@@ -79,7 +79,7 @@ public class PlayerController : MonoBehaviour
         }
 
         // Animatorに今の状態を教える
-        if(animator != null)
+        if (animator != null)
         {
             // animator.SetFloat("Horizontal", moveInput.x); // ←もしBlendTreeを使うならこっち
             // animator.SetFloat("Vertical", moveInput.y);
@@ -93,7 +93,7 @@ public class PlayerController : MonoBehaviour
         }
 
         // ★Shiftキーが押されて、ダッシュ中でなくて、クールダウンが終わってたらダッシュ！
-        if (Input.GetKeyDown(KeyCode.LeftShift) && !isDashing && dashCooldownTimer <= 0)
+        if ((Input.GetKeyDown(KeyCode.LeftShift) || Input.GetKeyDown(KeyCode.RightShift)) && !isDashing && dashCooldownTimer <= 0)
         {
             StartCoroutine(DashCoroutine());
         }
@@ -206,7 +206,7 @@ public class PlayerController : MonoBehaviour
             spriteRenderer.color = Color.white;
             await UniTask.Delay(100);
         }
-        
+
         isInvincible = false;
         Debug.Log("無敵状態が終了しました。");
     }

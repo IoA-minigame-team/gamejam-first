@@ -2,6 +2,7 @@ using UnityEngine;
 using TMPro; // TextMeshProを扱うために必要
 using UnityEngine.SceneManagement; // シーン管理に必要
 using Cysharp.Threading.Tasks; // UniTaskを使用する場合
+using unityroom.Api; // ★unityroom-client-libraryを使うために必要！
 
 public class GameManager : MonoBehaviour
 {
@@ -96,15 +97,21 @@ public class GameManager : MonoBehaviour
         score = 0f;
         Debug.Log("Game Start!");
     }
-    
+
     public void EndGame()
     {
         if (currentState == GameState.Playing)
         {
             currentState = GameState.GameOver;
-            Debug.Log("Game Over! Final Score: " + score.ToString("F0"));
-            
-            // UniTaskを使い、より安全にシーンをロードします
+
+            float finalScore = this.score;
+            Debug.Log("Game Over! Final Score: " + finalScore.ToString("F0"));
+
+            // ★スコアをUnityroomに送信する
+            // ボード番号はUnityroomの管理画面で確認してください（通常は1）
+            // スコアは整数である必要があるので、(int)で変換します
+            UnityroomApiClient.Instance.SendScore(1, (int)finalScore, ScoreboardWriteMode.HighScoreDesc);
+
             LoadResultSceneWithDelay().Forget();
         }
     }
