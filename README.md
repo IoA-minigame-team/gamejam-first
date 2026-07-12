@@ -1,6 +1,6 @@
-# kaze-hichau
+# 『かぜ、ひいちゃう』
 
-Unity（6000.4.4f1 / URP）製のトップダウン視点サバイバルアクション。unityroom への投稿を前提に、チーム（IoA-minigame-team）でブランチを分けて開発しています。
+Unity（6000.4.4f1 / URP）製のトップダウン視点サバイバルアクション。unityroom への投稿を前提に、チーム（IoA-minigame-team）でチーム開発。
 
 ## 概要
 
